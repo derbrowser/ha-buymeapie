@@ -1,0 +1,30 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Buy Me a Pie",
+        "description": "Sign in with the e-mail address and PIN of your Buy Me a Pie account.",
+        "data": {
+          "username": "E-mail",
+          "pin": "PIN"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate Buy Me a Pie",
+        "description": "The PIN for {username} was rejected. Please enter the current PIN.",
+        "data": {
+          "pin": "PIN"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to Buy Me a Pie",
+      "invalid_auth": "Invalid e-mail or PIN",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "This account is already configured",
+      "reauth_successful": "Re-authentication was successful"
+    }
+  }
+}
