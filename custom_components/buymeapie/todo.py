@@ -106,12 +106,43 @@ class BuyMeAPieTodoListEntity(CoordinatorEntity[BuyMeAPieCoordinator], TodoListE
             return None
         return next((raw for raw in lst["items"] if str(raw["id"]) == uid), None)
 
-    async def _call(self, *coros: Any) -> None:
-        """Run API calls, map errors, then refresh."""
+    async def _call(
+        self,
+        *coros: Any,
+        uids: list[str] | None = None,
+        missing_is_ok: bool = False,
+    ) -> None:
+        """Run API calls, map errors, then refresh.
+
+        ``uids`` names the item each coroutine acts on. If the API answers 404
+        for one of them, the item is a ghost (listed, but gone server-side): it
+        is hidden from now on. With ``missing_is_ok`` (deletes) that counts as
+        success, otherwise a clear error is raised.
+        """
         try:
-            await asyncio.gather(*coros)
-        except BuyMeAPieError as err:
-            raise HomeAssistantError(f"Buy Me a Pie: {err}") from err
+            results = await asyncio.gather(*coros, return_exceptions=True)
+            errors: list[BuyMeAPieError] = []
+            for index, result in enumerate(results):
+                if not isinstance(result, BaseException):
+                    continue
+                if not isinstance(result, BuyMeAPieError):
+                    raise result
+                if result.status == 404 and uids is not None:
+                    await self.coordinator.async_mark_ghost(
+                        self._list_id, uids[index]
+                    )
+                    if missing_is_ok:
+                        continue
+                    errors.append(
+                        BuyMeAPieError(
+                            "Item no longer exists on the server and is now hidden",
+                            status=404,
+                        )
+                    )
+                    continue
+                errors.append(result)
+            if errors:
+                raise HomeAssistantError(f"Buy Me a Pie: {errors[0]}") from errors[0]
         finally:
             await self.coordinator.async_request_refresh()
 
@@ -134,7 +165,8 @@ class BuyMeAPieTodoListEntity(CoordinatorEntity[BuyMeAPieCoordinator], TodoListE
                 title=title,
                 amount=item.description or "",
                 is_purchased=item.status == TodoItemStatus.COMPLETED,
-            )
+            ),
+            uids=[item.uid],
         )
 
     async def async_delete_todo_items(self, uids: list[str]) -> None:
@@ -142,5 +174,7 @@ class BuyMeAPieTodoListEntity(CoordinatorEntity[BuyMeAPieCoordinator], TodoListE
             *(
                 self.coordinator.client.async_delete_item(self._list_id, uid)
                 for uid in uids
-            )
+            ),
+            uids=uids,
+            missing_is_ok=True,
         )

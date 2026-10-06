@@ -45,6 +45,10 @@ _HEADERS = {
 class BuyMeAPieError(Exception):
     """Generic API error."""
 
+    def __init__(self, message: str, status: int | None = None) -> None:
+        super().__init__(message)
+        self.status = status
+
 
 class BuyMeAPieAuthError(BuyMeAPieError):
     """E-mail or PIN rejected."""
@@ -100,7 +104,8 @@ class BuyMeAPieClient:
                 raise BuyMeAPieAuthError("E-mail or PIN rejected")
             if status not in (200, 201):
                 raise BuyMeAPieError(
-                    f"{method.upper()} {endpoint} returned {status}: {text[:200]}"
+                    f"{method.upper()} {endpoint} returned {status}: {text[:200]}",
+                    status=status,
                 )
             if not text:
                 return {}
