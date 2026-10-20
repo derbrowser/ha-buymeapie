@@ -51,6 +51,7 @@ class BuyMeAPieTodoListEntity(CoordinatorEntity[BuyMeAPieCoordinator], TodoListE
     """A Buy Me a Pie shopping list."""
 
     _attr_has_entity_name = False
+    _attr_translation_key = "shopping_list"
     _attr_supported_features = (
         TodoListEntityFeature.CREATE_TODO_ITEM
         | TodoListEntityFeature.UPDATE_TODO_ITEM
